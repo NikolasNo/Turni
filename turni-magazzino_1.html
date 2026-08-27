@@ -1,0 +1,945 @@
+<title>Turni Magazzino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Deliberately single dark theme, matching the reference WMS dashboard. */
+  :root{
+    --bg:#2b2e36;
+    --surface:#32363f;
+    --surface-2:#2f323c;
+    --surface-3:#3b404b;
+    --border:#40454f;
+    --text:#cdd0d8;
+    --text-strong:#f5f6f8;
+    --text-muted:#8b8f9a;
+    --text-faint:#666b76;
+
+    --accent:#2563eb;
+    --accent-strong:#1d4fc4;
+    --accent-ink:#ffffff;
+
+    --picking:#2980b9;
+    --picking-border:#1f6693;
+    --picking-ink:#0f1c26;
+
+    --packing:#16a085;
+    --packing-border:#0f7d68;
+    --packing-ink:#08221c;
+
+    --danger:#f75757;
+    --danger-strong:#d43f3f;
+    --danger-ink:#ffffff;
+
+    --good:#27ae60;
+    --good-strong:#1e8a4c;
+    --good-ink:#ffffff;
+
+    --shadow: 0 2px 6px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.3);
+    --radius: 8px;
+    --radius-pill: 999px;
+    --font-display: 'Roboto', 'Segoe UI', sans-serif;
+    --font-body: 'Roboto', 'Segoe UI', sans-serif;
+    --font-mono: 'Roboto Mono', 'Consolas', monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    font-size:15px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:var(--font-display);font-weight:700;color:var(--text-strong);text-wrap:balance;margin:0;}
+  .num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+
+  .app{
+    max-width:1180px;
+    margin:0 auto;
+    padding:28px 24px 64px;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+  }
+
+  /* ---------- Topbar ---------- */
+  .topbar{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding-bottom:18px;
+    border-bottom:2px solid var(--border);
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{font-size:30px;line-height:1;filter:saturate(0.9);}
+  .brand h1{font-size:28px;letter-spacing:0.2px;}
+  .brand-sub{
+    margin:2px 0 0;
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    font-family:var(--font-display);
+    font-weight:600;
+  }
+
+  /* ---------- Actions ---------- */
+  .actions{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .actions label{
+    font-family:var(--font-display);
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-muted);
+    font-weight:600;
+  }
+  .actions input[type="date"]{
+    font-family:var(--font-mono);
+    font-size:14px;
+    padding:7px 9px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--text);
+    color-scheme:dark;
+  }
+  .btn{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:14px;
+    letter-spacing:0.01em;
+    padding:9px 18px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    background:var(--surface-2);
+    color:var(--text);
+    cursor:pointer;
+    transition:filter 0.12s ease, transform 0.05s ease;
+  }
+  .btn:hover{filter:brightness(1.15);}
+  .btn:active{transform:translateY(1px);}
+  .btn-accent{
+    background:var(--accent);
+    border-color:var(--accent-strong);
+    color:var(--accent-ink);
+  }
+  .btn-ghost{background:transparent;color:var(--text-muted);}
+  .btn-small{font-size:13px;padding:6px 12px;}
+  .add-msg{
+    font-size:13px;
+    color:var(--text-muted);
+    min-height:18px;
+  }
+
+  /* ---------- Roster table ---------- */
+  .grid-wrap{
+    overflow-x:auto;
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    background:var(--surface);
+    box-shadow:var(--shadow);
+  }
+  table.roster{
+    border-collapse:collapse;
+    width:100%;
+  }
+  table.roster th, table.roster td{
+    border-bottom:1px solid var(--border);
+    border-right:1px solid var(--border);
+    padding:10px 10px;
+    text-align:left;
+    vertical-align:middle;
+  }
+  table.roster th:last-child, table.roster td:last-child{border-right:none;}
+  table.roster thead th{
+    background:var(--surface);
+    min-width:172px;
+  }
+  table.roster thead th:first-child{min-width:150px;}
+  .corner-label{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-muted);
+  }
+  .week-title{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-muted);
+  }
+  .week-actions{
+    display:flex;
+    gap:6px;
+    margin-top:8px;
+  }
+  .icon-btn{
+    font-family:var(--font-body);
+    font-size:12px;
+    font-weight:600;
+    line-height:1;
+    padding:5px 9px;
+    border-radius:5px;
+    border:1px solid var(--border);
+    background:var(--surface-2);
+    color:var(--text-muted);
+    cursor:pointer;
+  }
+  .icon-btn:hover{background:var(--surface-3);}
+  .icon-btn.danger{background:var(--danger);border-color:var(--danger-strong);color:var(--danger-ink);}
+  .week-status{
+    margin-top:8px;
+    font-size:11.5px;
+    line-height:1.4;
+    font-weight:400;
+    text-transform:none;
+    letter-spacing:0;
+  }
+  .week-status.ok{color:var(--good);font-weight:600;}
+  .week-status.err{color:var(--danger);}
+  .week-status .issue-line{display:block;}
+
+  table.roster tbody th{
+    background:var(--bg);
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:15px;
+    color:var(--text-strong);
+    white-space:nowrap;
+  }
+  table.roster tbody th .emp-counters{
+    display:block;
+    font-family:var(--font-mono);
+    font-weight:400;
+    font-size:11px;
+    color:var(--text-faint);
+    margin-top:2px;
+    letter-spacing:0;
+  }
+  table.roster tbody td{background:var(--bg);}
+  table.roster tbody tr:nth-child(even) td, table.roster tbody tr:nth-child(even) th{
+    background:var(--surface-2);
+  }
+  select.role-select{
+    width:100%;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:12.5px;
+    letter-spacing:0.02em;
+    padding:7px 10px;
+    border-radius:var(--radius-pill);
+    border:1px solid transparent;
+    background:var(--surface-3);
+    color:var(--text);
+    cursor:pointer;
+    text-align:center;
+    text-align-last:center;
+  }
+  select.role-select.is-picking{background:var(--picking);border-color:var(--picking-border);color:var(--picking-ink);}
+  select.role-select.is-packing{background:var(--packing);border-color:var(--packing-border);color:var(--packing-ink);}
+  select.role-select.is-ferie{background:var(--surface-3);border-color:var(--border);color:var(--text-muted);font-style:italic;}
+
+  .empty-note{color:var(--text-faint);font-size:13.5px;padding:14px 2px;}
+
+  /* ---------- Summary (Riepilogo) ---------- */
+  .summary-toolbar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .summary-wrap{
+    overflow-x:auto;
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  table.summary{border-collapse:collapse;width:100%;background:var(--surface);}
+  table.summary th, table.summary td{
+    padding:12px 16px;
+    border-bottom:1px solid var(--border);
+    border-right:1px solid var(--border);
+    text-align:left;
+    white-space:nowrap;
+  }
+  table.summary th:last-child, table.summary td:last-child{border-right:none;}
+  table.summary thead th{
+    background:var(--surface);
+    color:var(--text-muted);
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+  }
+  table.summary tbody td{font-size:17px;}
+  table.summary tbody tr:nth-child(odd) td{background:var(--bg);}
+  table.summary tbody tr:nth-child(even) td{background:var(--surface-2);}
+  table.summary td.period{font-family:var(--font-display);font-weight:700;color:var(--text-strong);}
+  table.summary td.dash{color:var(--text-faint);}
+
+  /* ---------- Legend ---------- */
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 18px;
+    font-size:13px;
+    color:var(--text-muted);
+    padding:14px 16px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+  }
+  .legend-item{display:flex;align-items:center;gap:7px;}
+  .swatch{width:12px;height:12px;border-radius:3px;flex:none;}
+  .legend h3{width:100%;font-size:12.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px;}
+
+  /* ---------- Balance ---------- */
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:18px 20px;
+    box-shadow:var(--shadow);
+  }
+  .panel h2{font-size:19px;margin-bottom:4px;}
+  .panel .panel-sub{font-size:12.5px;color:var(--text-muted);margin:0 0 14px;}
+  .balance-rows{display:flex;flex-direction:column;gap:12px;}
+  .balance-row{display:grid;grid-template-columns:110px 1fr;gap:14px;align-items:center;}
+  .balance-name{font-family:var(--font-display);font-weight:600;font-size:14.5px;}
+  .balance-meters{display:flex;flex-direction:column;gap:5px;}
+  .meter-line{display:grid;grid-template-columns:78px 1fr 30px;align-items:center;gap:8px;}
+  .meter-label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);font-family:var(--font-display);font-weight:600;}
+  .meter-track{height:7px;border-radius:4px;background:var(--surface-3);overflow:hidden;}
+  .meter-fill{height:100%;border-radius:4px;}
+  .meter-value{font-size:12px;text-align:right;color:var(--text-muted);}
+
+  @media (max-width: 720px){
+    .balance-row{grid-template-columns:1fr;}
+  }
+</style>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">📦</span>
+      <div>
+        <h1>Turni Magazzino</h1>
+        <p class="brand-sub">Led-Italia · Pianificazione settimanale</p>
+      </div>
+    </div>
+  </header>
+
+  <section class="actions">
+    <label for="week-start">Aggiungi settimana dal</label>
+    <input type="date" id="week-start">
+    <button class="btn btn-accent" id="btn-add">Aggiungi settimana</button>
+    <button class="btn btn-ghost" id="btn-add4">Genera 4 settimane</button>
+    <span class="add-msg" id="add-msg"></span>
+  </section>
+
+  <div class="grid-wrap">
+    <table class="roster" id="roster-table">
+      <thead><tr id="roster-head"></tr></thead>
+      <tbody id="roster-body"></tbody>
+    </table>
+  </div>
+
+  <section class="panel">
+    <h2>Riepilogo</h2>
+    <p class="panel-sub">Vista pronta da stampare o condividere, generata dalle settimane in tabella.</p>
+    <div class="summary-toolbar">
+      <button class="btn btn-ghost btn-small" id="btn-copy-summary" type="button">Copia riepilogo</button>
+      <span class="add-msg" id="copy-msg"></span>
+    </div>
+    <div class="summary-wrap">
+      <table class="summary" id="summary-table">
+        <thead>
+          <tr>
+            <th>Periodo</th>
+            <th>Picking</th>
+            <th>Packing</th>
+            <th>Spunta</th>
+            <th>Supporto Spunta</th>
+          </tr>
+        </thead>
+        <tbody id="summary-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="legend">
+    <h3>Regole della squadra</h3>
+    <div class="legend-item"><span class="swatch" style="background:var(--picking)"></span>PICKING — 3 persone a settimana (2 + 1 che fa anche SPUNTA)</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--packing)"></span>PACKING — 3 persone a settimana (2 + 1 che fa anche SUPPORTO SPUNTA), più ING. fissa</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--accent)"></span>SPUNTA / SUPPORTO SPUNTA — per tutta la settimana, da 1 persona già in PICKING e 1 già in PACKING</div>
+    <div class="legend-item">ING. è sempre in PACKING tutta la settimana: non compare in tabella</div>
+    <div class="legend-item">DAVIDE L. e DAVIDE N. non sono mai nella stessa attività nella stessa settimana</div>
+    <div class="legend-item">Se un DAVIDE fa SPUNTA, l'altro non può fare SUPPORTO SPUNTA nella stessa settimana</div>
+    <div class="legend-item">SIMONE R. non ha vincoli: ruota liberamente come MATTEO, DANIEL e KHADIM</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--danger)"></span>FERIE — segna un'assenza: la persona esce dalla rotazione quella settimana</div>
+  </div>
+
+  <section class="panel">
+    <h2>Bilanciamento</h2>
+    <p class="panel-sub">Totali sulle settimane in tabella — usati per proporre una rotazione equa quando aggiungi o rigeneri una settimana.</p>
+    <div class="balance-rows" id="balance-body"></div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "ledit-magazzino-turni-v2";
+  var EMPLOYEES = ["MATTEO","DANIEL","DAVIDE L.","DAVIDE N.","KHADIM","SIMONE R."];
+  var MONTHS_SHORT = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+
+  var ROLE_LABEL = {
+    PICKING:"Picking",
+    PICKING_SPUNTA:"Picking + Spunta",
+    PACKING:"Packing",
+    PACKING_SUPPORTO:"Packing + Supporto",
+    FERIE:"Ferie / Assente"
+  };
+  var ROLE_OPTIONS = ["PICKING","PICKING_SPUNTA","PACKING","PACKING_SUPPORTO","FERIE"];
+
+  // ---------- persistence ----------
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return { weeks: [] };
+      var parsed = JSON.parse(raw);
+      if(!parsed || !Array.isArray(parsed.weeks)) return { weeks: [] };
+      return parsed;
+    }catch(e){ return { weeks: [] }; }
+  }
+  function saveState(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){ /* ignore */ }
+  }
+
+  var state = loadState();
+
+  // ---------- date helpers ----------
+  function parseISO(iso){
+    var p = iso.split("-").map(Number);
+    return new Date(p[0], p[1]-1, p[2]);
+  }
+  function toISO(d){
+    var y=d.getFullYear(), m=("0"+(d.getMonth()+1)).slice(-2), day=("0"+d.getDate()).slice(-2);
+    return y+"-"+m+"-"+day;
+  }
+  function addDays(iso, n){
+    var d = parseISO(iso);
+    d.setDate(d.getDate()+n);
+    return toISO(d);
+  }
+  function fmtShort(iso){
+    var d = parseISO(iso);
+    return d.getDate()+" "+MONTHS_SHORT[d.getMonth()];
+  }
+  function nextOrThisMonday(){
+    var d = new Date();
+    var dow = d.getDay();
+    var diff = dow===0 ? 1 : (dow===1 ? 0 : 8-dow);
+    d.setDate(d.getDate()+diff);
+    return toISO(d);
+  }
+  function weekRangeLabel(startISO){
+    var endISO = addDays(startISO,4);
+    var start = parseISO(startISO), end = parseISO(endISO);
+    var sameMonth = start.getMonth()===end.getMonth() && start.getFullYear()===end.getFullYear();
+    if(sameMonth) return start.getDate()+" – "+end.getDate()+" "+MONTHS_SHORT[end.getMonth()];
+    return fmtShort(startISO)+" – "+fmtShort(endISO);
+  }
+
+  // ---------- counters ----------
+  function emptyCounters(){
+    var c = {};
+    EMPLOYEES.forEach(function(e){ c[e] = {picking:0, packing:0, spunta:0, supporto:0, ferie:0}; });
+    return c;
+  }
+  function computeCounters(weeks, excludeId){
+    var c = emptyCounters();
+    weeks.forEach(function(w){
+      if(excludeId && w.id===excludeId) return;
+      EMPLOYEES.forEach(function(emp){
+        var v = w.assignments[emp];
+        if(v==="PICKING"){ c[emp].picking++; }
+        else if(v==="PICKING_SPUNTA"){ c[emp].picking++; c[emp].spunta++; }
+        else if(v==="PACKING"){ c[emp].packing++; }
+        else if(v==="PACKING_SUPPORTO"){ c[emp].packing++; c[emp].supporto++; }
+        else if(v==="FERIE"){ c[emp].ferie++; }
+      });
+    });
+    return c;
+  }
+
+  // ---------- weekly assignment generation ----------
+  function pickLowest(list, counters, field){
+    var scored = list.map(function(e){ return { e:e, c:counters[e][field], r:Math.random() }; });
+    scored.sort(function(a,b){ return (a.c-b.c) || (a.r-b.r); });
+    return scored[0].e;
+  }
+
+  function generateWeekAssignment(baseCounters, ferieSet){
+    ferieSet = ferieSet || new Set();
+    var assign = {};
+    EMPLOYEES.forEach(function(e){ if(ferieSet.has(e)) assign[e] = "FERIE"; });
+    var available = EMPLOYEES.filter(function(e){ return !ferieSet.has(e); });
+
+    // Davide L./N. must land on different activities, but only if both are present this week
+    var davideBothPresent = available.indexOf("DAVIDE L.")>=0 && available.indexOf("DAVIDE N.")>=0;
+    var forcedPicking = [], forcedPacking = [];
+    if(davideBothPresent){
+      var dl = baseCounters["DAVIDE L."].picking, dn = baseCounters["DAVIDE N."].picking;
+      var dlToPicking = (dl<dn) || (dl===dn && Math.random()<0.5);
+      if(dlToPicking){ forcedPicking.push("DAVIDE L."); forcedPacking.push("DAVIDE N."); }
+      else { forcedPicking.push("DAVIDE N."); forcedPacking.push("DAVIDE L."); }
+    }
+    var forcedSet = {};
+    forcedPicking.concat(forcedPacking).forEach(function(e){ forcedSet[e] = true; });
+    var remainingPool = available.filter(function(e){ return !forcedSet[e]; });
+
+    // PICKING is a fixed team of 3; everyone else present goes to PACKING —
+    // no one is ever left unassigned.
+    var pickTarget = Math.min(3, available.length);
+    var pickSlotsLeft = Math.max(0, pickTarget - forcedPicking.length);
+
+    var scoredPool = remainingPool.map(function(e){ return { e:e, c:baseCounters[e].picking, r:Math.random() }; });
+    scoredPool.sort(function(a,b){ return (a.c-b.c) || (a.r-b.r); });
+
+    var pickingGroup = forcedPicking.slice();
+    var packingGroup = forcedPacking.slice();
+    scoredPool.forEach(function(item, idx){
+      if(idx < pickSlotsLeft){ pickingGroup.push(item.e); }
+      else { packingGroup.push(item.e); }
+    });
+
+    pickingGroup.forEach(function(e){ assign[e] = "PICKING"; });
+    packingGroup.forEach(function(e){ assign[e] = "PACKING"; });
+
+    var spuntaPick = null;
+    if(pickingGroup.length>0){
+      var spuntaCandidates = pickingGroup;
+      // Avoid forcing the Davide/Davide clash below: if Packing ends up with
+      // only the other Davide as its sole member, don't hand Spunta to their
+      // sibling — that would leave no one else who could take Supporto Spunta.
+      if(packingGroup.length===1 && (packingGroup[0]==="DAVIDE L." || packingGroup[0]==="DAVIDE N.")){
+        var trappedSibling = packingGroup[0]==="DAVIDE L." ? "DAVIDE N." : "DAVIDE L.";
+        var withoutSibling = pickingGroup.filter(function(e){ return e!==trappedSibling; });
+        if(withoutSibling.length>0){ spuntaCandidates = withoutSibling; }
+      }
+      spuntaPick = pickLowest(spuntaCandidates, baseCounters, "spunta");
+      assign[spuntaPick] = "PICKING_SPUNTA";
+    }
+    if(packingGroup.length>0){
+      // If one Davide has Spunta this week, the other Davide (if in Packing)
+      // must not also be the one doing Supporto Spunta the same week.
+      var supportoCandidates = packingGroup;
+      var davideOnSpunta = (spuntaPick==="DAVIDE L." || spuntaPick==="DAVIDE N.");
+      if(davideOnSpunta){
+        var otherDavide = spuntaPick==="DAVIDE L." ? "DAVIDE N." : "DAVIDE L.";
+        var withoutOtherDavide = packingGroup.filter(function(e){ return e!==otherDavide; });
+        if(withoutOtherDavide.length>0){ supportoCandidates = withoutOtherDavide; }
+      }
+      var supportoPick = pickLowest(supportoCandidates, baseCounters, "supporto");
+      assign[supportoPick] = "PACKING_SUPPORTO";
+    }
+
+    return assign;
+  }
+
+  // ---------- validation ----------
+  function baseRole(v){
+    if(v==="PICKING"||v==="PICKING_SPUNTA") return "PICKING";
+    if(v==="PACKING"||v==="PACKING_SUPPORTO") return "PACKING";
+    return null;
+  }
+  function validateWeek(assign){
+    var issues = [];
+    var ferieCount=0, pickCount=0, packCount=0, spuntaCount=0, supportoCount=0;
+    EMPLOYEES.forEach(function(e){
+      var v = assign[e];
+      if(v==="FERIE"){ ferieCount++; }
+      else if(v==="PICKING"){ pickCount++; }
+      else if(v==="PICKING_SPUNTA"){ pickCount++; spuntaCount++; }
+      else if(v==="PACKING"){ packCount++; }
+      else if(v==="PACKING_SUPPORTO"){ packCount++; supportoCount++; }
+    });
+    var available = EMPLOYEES.length - ferieCount;
+    var pickTarget = Math.min(3, available);
+    var packTarget = Math.max(0, available - pickTarget);
+
+    if(pickCount!==pickTarget) issues.push("Picking: "+pickCount+"/"+pickTarget);
+    if(packCount!==packTarget) issues.push("Packing: "+packCount+"/"+packTarget);
+    if(pickTarget>0 && spuntaCount!==1) issues.push("Spunta: "+spuntaCount+" (serve 1)");
+    if(packTarget>0 && supportoCount!==1) issues.push("Supporto: "+supportoCount+" (serve 1)");
+    var dlRole = assign["DAVIDE L."], dnRole = assign["DAVIDE N."];
+    if(dlRole && dlRole!=="FERIE" && dnRole && dnRole!=="FERIE" && baseRole(dlRole)===baseRole(dnRole)){
+      issues.push("Davide L./N. stessa attività");
+    }
+    var davideSpuntaSupportoClash =
+      (dlRole==="PACKING_SUPPORTO" && dnRole==="PICKING_SPUNTA") ||
+      (dnRole==="PACKING_SUPPORTO" && dlRole==="PICKING_SPUNTA");
+    if(davideSpuntaSupportoClash){
+      issues.push("Davide L./N.: Spunta e Supporto Spunta insieme");
+    }
+    return issues;
+  }
+
+  // ---------- rendering ----------
+  function el(tag, attrs, children){
+    var n = document.createElement(tag);
+    if(attrs) for(var k in attrs){
+      if(k==="class") n.className = attrs[k];
+      else if(k==="text") n.textContent = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    }
+    (children||[]).forEach(function(c){ if(c) n.appendChild(c); });
+    return n;
+  }
+
+  function sortedWeeks(){
+    return state.weeks.slice().sort(function(a,b){ return a.id.localeCompare(b.id); });
+  }
+
+  function renderHead(weeks){
+    var row = document.getElementById("roster-head");
+    row.innerHTML = "";
+    row.appendChild(el("th",{},[el("span",{class:"corner-label", text:"Dipendente"})]));
+    weeks.forEach(function(w){
+      var th = document.createElement("th");
+      th.appendChild(el("div",{class:"week-title", text: weekRangeLabel(w.id)}));
+
+      var actions = el("div",{class:"week-actions"});
+      var regenBtn = el("button",{class:"icon-btn", text:"⟳ Rigenera", type:"button"});
+      regenBtn.addEventListener("click", function(){
+        var ferieSet = new Set(EMPLOYEES.filter(function(e){ return w.assignments[e]==="FERIE"; }));
+        var base = computeCounters(state.weeks, w.id);
+        w.assignments = generateWeekAssignment(base, ferieSet);
+        saveState();
+        renderAll();
+      });
+      var delBtn = el("button",{class:"icon-btn danger", text:"Elimina", type:"button"});
+      var confirmDelete = false;
+      delBtn.addEventListener("click", function(){
+        if(!confirmDelete){
+          confirmDelete = true;
+          delBtn.textContent = "Conferma?";
+          setTimeout(function(){ confirmDelete=false; delBtn.textContent="Elimina"; }, 2500);
+          return;
+        }
+        state.weeks = state.weeks.filter(function(x){ return x.id!==w.id; });
+        saveState();
+        renderAll();
+      });
+      actions.appendChild(regenBtn);
+      actions.appendChild(delBtn);
+      th.appendChild(actions);
+
+      var issues = validateWeek(w.assignments);
+      var status = document.createElement("div");
+      if(issues.length===0){
+        status.className = "week-status ok";
+        status.textContent = "✓ Regole rispettate";
+      } else {
+        status.className = "week-status err";
+        issues.forEach(function(i){
+          status.appendChild(el("span",{class:"issue-line", text:"⚠ "+i}));
+        });
+      }
+      th.appendChild(status);
+
+      row.appendChild(th);
+    });
+  }
+
+  function renderBody(weeks){
+    var body = document.getElementById("roster-body");
+    body.innerHTML = "";
+    var counters = computeCounters(state.weeks);
+
+    EMPLOYEES.forEach(function(emp){
+      var tr = document.createElement("tr");
+      var th = el("th",{});
+      th.appendChild(document.createTextNode(emp));
+      var c = counters[emp];
+      th.appendChild(el("span",{class:"emp-counters num", text:"P "+c.picking+" · K "+c.packing+" · S "+c.spunta+" · Ss "+c.supporto+" · F "+c.ferie}));
+      tr.appendChild(th);
+
+      weeks.forEach(function(w){
+        var td = document.createElement("td");
+        var sel = document.createElement("select");
+        sel.className = "role-select";
+        ROLE_OPTIONS.forEach(function(v){
+          var opt = document.createElement("option");
+          opt.value = v; opt.textContent = ROLE_LABEL[v];
+          if(w.assignments[emp]===v) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        var br = baseRole(w.assignments[emp]);
+        var stateCls = br==="PICKING" ? "is-picking" : (br==="PACKING" ? "is-packing" : "is-ferie");
+        sel.classList.add(stateCls);
+        sel.addEventListener("change", (function(w, emp, sel){
+          return function(){
+            w.assignments[emp] = sel.value;
+            saveState();
+            renderAll();
+          };
+        })(w, emp, sel));
+        td.appendChild(sel);
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+  }
+
+  function summaryCell(list){
+    var td = document.createElement("td");
+    if(list.length===0){ td.className = "dash"; td.textContent = "—"; }
+    else { td.textContent = list.join(" + "); }
+    return td;
+  }
+
+  function renderSummary(weeks){
+    var body = document.getElementById("summary-body");
+    body.innerHTML = "";
+    if(weeks.length===0){
+      body.innerHTML = '<tr><td colspan="5" class="empty-note">Nessuna settimana ancora.</td></tr>';
+      return;
+    }
+    weeks.forEach(function(w){
+      var picking = EMPLOYEES.filter(function(e){ return baseRole(w.assignments[e])==="PICKING"; });
+      var packing = EMPLOYEES.filter(function(e){ return baseRole(w.assignments[e])==="PACKING"; });
+      var spunta = EMPLOYEES.filter(function(e){ return w.assignments[e]==="PICKING_SPUNTA"; });
+      var supporto = EMPLOYEES.filter(function(e){ return w.assignments[e]==="PACKING_SUPPORTO"; });
+      var tr = document.createElement("tr");
+      tr.appendChild(el("td",{class:"period", text: weekRangeLabel(w.id)}));
+      tr.appendChild(summaryCell(picking));
+      tr.appendChild(summaryCell(packing));
+      tr.appendChild(summaryCell(spunta));
+      tr.appendChild(summaryCell(supporto));
+      body.appendChild(tr);
+    });
+  }
+
+  function renderBalance(){
+    var body = document.getElementById("balance-body");
+    body.innerHTML = "";
+    if(state.weeks.length===0){
+      body.appendChild(el("p",{class:"empty-note", text:"Nessuna settimana in tabella ancora."}));
+      return;
+    }
+    var c = computeCounters(state.weeks);
+    var fields = [["picking","Picking","--picking"],["packing","Packing","--packing"],["spunta","Spunta","--accent"],["supporto","Supporto","--accent"],["ferie","Ferie","--danger"]];
+    var max = {picking:1,packing:1,spunta:1,supporto:1,ferie:1};
+    EMPLOYEES.forEach(function(e){ fields.forEach(function(f){ max[f[0]] = Math.max(max[f[0]], c[e][f[0]]); }); });
+    EMPLOYEES.forEach(function(emp){
+      var row = el("div",{class:"balance-row"});
+      row.appendChild(el("div",{class:"balance-name", text: emp}));
+      var meters = el("div",{class:"balance-meters"});
+      fields.forEach(function(f){
+        var val = c[emp][f[0]];
+        var pct = Math.round((val / max[f[0]]) * 100);
+        var line = el("div",{class:"meter-line"});
+        line.appendChild(el("span",{class:"meter-label", text:f[1]}));
+        var track = el("div",{class:"meter-track"});
+        var fill = el("div",{class:"meter-fill"});
+        fill.style.width = pct+"%";
+        fill.style.background = "var("+f[2]+")";
+        track.appendChild(fill);
+        line.appendChild(track);
+        line.appendChild(el("span",{class:"meter-value num", text: String(val)}));
+        meters.appendChild(line);
+      });
+      row.appendChild(meters);
+      body.appendChild(row);
+    });
+  }
+
+  function renderAll(){
+    var weeks = sortedWeeks();
+    if(weeks.length===0){
+      document.getElementById("roster-head").innerHTML = "";
+      document.getElementById("roster-body").innerHTML = '<tr><td class="empty-note">Nessuna settimana ancora: aggiungine una con il pulsante qui sopra.</td></tr>';
+    } else {
+      renderHead(weeks);
+      renderBody(weeks);
+    }
+    renderSummary(weeks);
+    renderBalance();
+    updateAddDefault();
+  }
+
+  function updateAddDefault(){
+    var weeks = sortedWeeks();
+    var input = document.getElementById("week-start");
+    if(weeks.length===0){
+      input.value = nextOrThisMonday();
+    } else {
+      input.value = addDays(weeks[weeks.length-1].id, 7);
+    }
+  }
+
+  // ---------- wiring ----------
+  document.getElementById("btn-add").addEventListener("click", function(){
+    var msg = document.getElementById("add-msg");
+    var iso = document.getElementById("week-start").value;
+    if(!iso){ msg.textContent = "Scegli una data."; return; }
+    if(state.weeks.some(function(w){ return w.id===iso; })){
+      msg.textContent = "Quella settimana è già in tabella.";
+      return;
+    }
+    var base = computeCounters(state.weeks);
+    var assignments = generateWeekAssignment(base, new Set());
+    state.weeks.push({ id: iso, assignments: assignments });
+    saveState();
+    msg.textContent = "";
+    renderAll();
+  });
+
+  document.getElementById("btn-add4").addEventListener("click", function(){
+    var msg = document.getElementById("add-msg");
+    var startIso = document.getElementById("week-start").value;
+    if(!startIso){ msg.textContent = "Scegli una data di inizio."; return; }
+    var added = 0, skipped = 0;
+    for(var i=0; i<4; i++){
+      var iso = addDays(startIso, i*7);
+      if(state.weeks.some(function(w){ return w.id===iso; })){ skipped++; continue; }
+      var base = computeCounters(state.weeks);
+      var assignments = generateWeekAssignment(base, new Set());
+      state.weeks.push({ id: iso, assignments: assignments });
+      added++;
+    }
+    saveState();
+    msg.textContent = added+" settiman"+(added===1?"a aggiunta":"e aggiunte")+(skipped>0 ? (", "+skipped+" già presenti") : ".");
+    renderAll();
+  });
+
+  // Builds a plain, neutrally-styled <table> (inline styles, light colors)
+  // independent from the on-screen dark table — this is what actually gets
+  // copied, so it reads well pasted into Teams/Outlook/Word on a white background.
+  function buildCleanSummaryTable(){
+    var headers = ["Periodo","Picking","Packing","Spunta","Supporto Spunta"];
+    var t = document.createElement("table");
+    t.setAttribute("cellspacing","0");
+    t.setAttribute("cellpadding","0");
+    t.style.cssText = "border-collapse:collapse;font-family:Calibri,Arial,Helvetica,sans-serif;font-size:13px;color:#111111;background:#ffffff;";
+
+    var thead = document.createElement("tr");
+    headers.forEach(function(h){
+      var th = document.createElement("th");
+      th.textContent = h;
+      th.style.cssText = "border:1px solid #999999;padding:6px 10px;background:#2b2e36;color:#ffffff;text-align:left;font-weight:bold;white-space:nowrap;";
+      thead.appendChild(th);
+    });
+    t.appendChild(thead);
+
+    var weeks = sortedWeeks();
+    weeks.forEach(function(w, idx){
+      var tr = document.createElement("tr");
+      var rowBg = (idx % 2 === 0) ? "#ffffff" : "#f0f0f0";
+      var picking = EMPLOYEES.filter(function(e){ return baseRole(w.assignments[e])==="PICKING"; }).join(" + ") || "—";
+      var packing = EMPLOYEES.filter(function(e){ return baseRole(w.assignments[e])==="PACKING"; }).join(" + ") || "—";
+      var spunta = EMPLOYEES.filter(function(e){ return w.assignments[e]==="PICKING_SPUNTA"; }).join(" + ") || "—";
+      var supporto = EMPLOYEES.filter(function(e){ return w.assignments[e]==="PACKING_SUPPORTO"; }).join(" + ") || "—";
+      [weekRangeLabel(w.id), picking, packing, spunta, supporto].forEach(function(val, ci){
+        var td = document.createElement("td");
+        td.textContent = val;
+        td.style.cssText = "border:1px solid #999999;padding:6px 10px;background:"+rowBg+";color:#111111;white-space:nowrap;"+(ci===0 ? "font-weight:bold;" : "");
+        tr.appendChild(td);
+      });
+      t.appendChild(tr);
+    });
+    return t;
+  }
+
+  function summaryPlainText(cleanTable){
+    var lines = [];
+    cleanTable.querySelectorAll("tr").forEach(function(row){
+      var vals = [];
+      row.querySelectorAll("th,td").forEach(function(c){ vals.push(c.textContent.trim()); });
+      lines.push(vals.join("\t"));
+    });
+    return lines.join("\n");
+  }
+
+  document.getElementById("btn-copy-summary").addEventListener("click", function(){
+    var copyMsg = document.getElementById("copy-msg");
+    var cleanTable = buildCleanSummaryTable();
+    var text = summaryPlainText(cleanTable);
+    var html = "<table>"+cleanTable.innerHTML+"</table>";
+
+    function showDone(){ copyMsg.textContent = "Copiato: incollalo pure in Teams, Excel o email."; setTimeout(function(){ copyMsg.textContent=""; }, 4000); }
+
+    // Legacy but very broadly supported: selects the real <table> DOM node and
+    // runs the browser's own copy command, which places BOTH an HTML table and
+    // plain text on the clipboard — this is what makes Teams paste a real table
+    // even when the async Clipboard API above is blocked by the sandbox.
+    function selectionExecCommandCopy(){
+      var holder = document.createElement("div");
+      holder.setAttribute("contenteditable","true");
+      holder.style.position = "fixed";
+      holder.style.top = "0";
+      holder.style.left = "0";
+      holder.style.opacity = "0";
+      holder.style.pointerEvents = "none";
+      holder.style.background = "#ffffff";
+      holder.style.color = "#111111";
+      holder.appendChild(cleanTable.cloneNode(true));
+      document.body.appendChild(holder);
+
+      var ok = false;
+      try{
+        var range = document.createRange();
+        range.selectNodeContents(holder);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        holder.focus();
+        ok = document.execCommand("copy");
+        sel.removeAllRanges();
+      }catch(e){ ok = false; }
+      document.body.removeChild(holder);
+      return ok;
+    }
+
+    function lastResort(){
+      if(selectionExecCommandCopy()){ showDone(); return; }
+      copyMsg.textContent = "Copia automatica non disponibile in questo browser: apri il riepilogo e seleziona la tabella a mano.";
+    }
+
+    if(navigator.clipboard && window.ClipboardItem){
+      try{
+        var item = new ClipboardItem({
+          "text/plain": new Blob([text], {type:"text/plain"}),
+          "text/html": new Blob([html], {type:"text/html"})
+        });
+        navigator.clipboard.write([item]).then(showDone, lastResort);
+      }catch(e){ lastResort(); }
+    } else {
+      lastResort();
+    }
+  });
+
+  // ---------- init ----------
+  renderAll();
+
+})();
+</script>
