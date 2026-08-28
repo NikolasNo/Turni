@@ -555,10 +555,12 @@
     var remainingPool = available.filter(function(e){ return !forcedSet[e]; });
 
     // PICKING is a fixed team of 4 (3 + 1 who also does SPUNTA); everyone else
-    // present goes to PACKING — no one is ever left unassigned. When both
-    // Davides are present, one of them is always forced into PACKING (see
-    // below), so reserve that slot rather than overshooting the Picking target.
-    var pickTarget = Math.min(4, available.length - (davideBothPresent ? 1 : 0));
+    // present goes to PACKING — no one is ever left unassigned. Whenever at
+    // least 2 people are available, reserve 1 of them for PACKING so it's
+    // never left empty (otherwise nobody could do SUPPORTO SPUNTA) — this
+    // also always covers the both-Davides-present case, since one of them is
+    // forced into PACKING below.
+    var pickTarget = Math.min(4, available.length - (available.length>=2 ? 1 : 0));
     var pickSlotsLeft = Math.max(0, pickTarget - forcedPicking.length);
 
     // Sort candidates for the PICKING slots by: rotation preference first
@@ -631,7 +633,7 @@
     var davideBothPresent = dlRole && dlRole!=="FERIE" && dnRole && dnRole!=="FERIE";
 
     var available = EMPLOYEES.length - ferieCount;
-    var pickTarget = Math.min(4, available - (davideBothPresent ? 1 : 0));
+    var pickTarget = Math.min(4, available - (available>=2 ? 1 : 0));
     var packTarget = Math.max(0, available - pickTarget);
 
     if(pickCount!==pickTarget) issues.push("Picking: "+pickCount+"/"+pickTarget);
