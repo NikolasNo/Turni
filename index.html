@@ -391,6 +391,7 @@
     <div class="legend-item">DAVIDE L. e DAVIDE N. non sono mai nella stessa attività nella stessa settimana</div>
     <div class="legend-item">Se un DAVIDE fa SPUNTA, l'altro non può fare SUPPORTO SPUNTA nella stessa settimana</div>
     <div class="legend-item">SIMONE R. non ha vincoli: ruota liberamente come MATTEO, DANIEL e KHADIM</div>
+    <div class="legend-item">La generazione cerca di evitare la stessa attività base (Picking/Packing) nella settimana precedente o successiva — non sempre possibile con squadre da 4 e 2 persone</div>
     <div class="legend-item"><span class="swatch" style="background:var(--danger)"></span>FERIE — segna un'assenza: la persona esce dalla rotazione quella settimana</div>
   </div>
 
@@ -490,6 +491,26 @@
     return c;
   }
 
+  // For a given week id, looks at the immediately adjacent weeks already in
+  // the table (7 days before / 7 days after) and returns, per employee, the
+  // set of base activities (PICKING/PACKING) they did there — activities the
+  // new/regenerated week should try to avoid repeating.
+  function computeAvoidRoles(weekId){
+    var avoid = {};
+    [addDays(weekId,-7), addDays(weekId,7)].forEach(function(neighborId){
+      var w = state.weeks.find(function(x){ return x.id===neighborId; });
+      if(!w) return;
+      EMPLOYEES.forEach(function(emp){
+        var r = baseRole(w.assignments[emp]);
+        if(r){
+          if(!avoid[emp]) avoid[emp] = new Set();
+          avoid[emp].add(r);
+        }
+      });
+    });
+    return avoid;
+  }
+
   // ---------- weekly assignment generation ----------
   function pickLowest(list, counters, field){
     var scored = list.map(function(e){ return { e:e, c:counters[e][field], r:Math.random() }; });
@@ -497,8 +518,24 @@
     return scored[0].e;
   }
 
-  function generateWeekAssignment(baseCounters, ferieSet){
+  // How much a role should be avoided for this employee, based on neighboring
+  // weeks (previous and/or next, when already in the table): 1 if they did
+  // that base activity in a neighboring week, else 0.
+  function roleViolation(avoidRoles, emp, role){
+    return (avoidRoles[emp] && avoidRoles[emp].has(role)) ? 1 : 0;
+  }
+  // Positive = better suited for PICKING this week (avoids PACKING and/or
+  // wants to escape a PICKING repeat less), negative = better suited for
+  // PACKING. Used only as a soft rotation preference — team sizes (4/2) make
+  // a guaranteed full swap every week mathematically impossible, so this is
+  // best-effort, not a hard rule.
+  function pickingPreference(avoidRoles, emp){
+    return roleViolation(avoidRoles, emp, "PACKING") - roleViolation(avoidRoles, emp, "PICKING");
+  }
+
+  function generateWeekAssignment(baseCounters, ferieSet, avoidRoles){
     ferieSet = ferieSet || new Set();
+    avoidRoles = avoidRoles || {};
     var assign = {};
     EMPLOYEES.forEach(function(e){ if(ferieSet.has(e)) assign[e] = "FERIE"; });
     var available = EMPLOYEES.filter(function(e){ return !ferieSet.has(e); });
@@ -507,8 +544,9 @@
     var davideBothPresent = available.indexOf("DAVIDE L.")>=0 && available.indexOf("DAVIDE N.")>=0;
     var forcedPicking = [], forcedPacking = [];
     if(davideBothPresent){
+      var dlPref = pickingPreference(avoidRoles, "DAVIDE L."), dnPref = pickingPreference(avoidRoles, "DAVIDE N.");
       var dl = baseCounters["DAVIDE L."].picking, dn = baseCounters["DAVIDE N."].picking;
-      var dlToPicking = (dl<dn) || (dl===dn && Math.random()<0.5);
+      var dlToPicking = (dlPref!==dnPref) ? (dlPref>dnPref) : ((dl<dn) || (dl===dn && Math.random()<0.5));
       if(dlToPicking){ forcedPicking.push("DAVIDE L."); forcedPacking.push("DAVIDE N."); }
       else { forcedPicking.push("DAVIDE N."); forcedPacking.push("DAVIDE L."); }
     }
@@ -523,8 +561,13 @@
     var pickTarget = Math.min(4, available.length - (davideBothPresent ? 1 : 0));
     var pickSlotsLeft = Math.max(0, pickTarget - forcedPicking.length);
 
-    var scoredPool = remainingPool.map(function(e){ return { e:e, c:baseCounters[e].picking, r:Math.random() }; });
-    scoredPool.sort(function(a,b){ return (a.c-b.c) || (a.r-b.r); });
+    // Sort candidates for the PICKING slots by: rotation preference first
+    // (favor whoever should switch away from their neighboring weeks'
+    // activity), then long-term fairness (lowest picking count), then random.
+    var scoredPool = remainingPool.map(function(e){
+      return { e:e, pref: pickingPreference(avoidRoles, e), c: baseCounters[e].picking, r: Math.random() };
+    });
+    scoredPool.sort(function(a,b){ return (b.pref-a.pref) || (a.c-b.c) || (a.r-b.r); });
 
     var pickingGroup = forcedPicking.slice();
     var packingGroup = forcedPacking.slice();
@@ -636,7 +679,8 @@
       regenBtn.addEventListener("click", function(){
         var ferieSet = new Set(EMPLOYEES.filter(function(e){ return w.assignments[e]==="FERIE"; }));
         var base = computeCounters(state.weeks, w.id);
-        w.assignments = generateWeekAssignment(base, ferieSet);
+        var avoidRoles = computeAvoidRoles(w.id);
+        w.assignments = generateWeekAssignment(base, ferieSet, avoidRoles);
         saveState();
         renderAll();
       });
@@ -811,7 +855,8 @@
       return;
     }
     var base = computeCounters(state.weeks);
-    var assignments = generateWeekAssignment(base, new Set());
+    var avoidRoles = computeAvoidRoles(iso);
+    var assignments = generateWeekAssignment(base, new Set(), avoidRoles);
     state.weeks.push({ id: iso, assignments: assignments });
     saveState();
     msg.textContent = "";
@@ -827,7 +872,8 @@
       var iso = addDays(startIso, i*7);
       if(state.weeks.some(function(w){ return w.id===iso; })){ skipped++; continue; }
       var base = computeCounters(state.weeks);
-      var assignments = generateWeekAssignment(base, new Set());
+      var avoidRoles = computeAvoidRoles(iso);
+      var assignments = generateWeekAssignment(base, new Set(), avoidRoles);
       state.weeks.push({ id: iso, assignments: assignments });
       added++;
     }
